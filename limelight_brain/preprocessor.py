@@ -15,6 +15,8 @@ class Preprocessor:
 
     # method to read embeddings and label csv files and create vectors
     def create_base_vectors(self):
+        print "Working on imdb info..."
+
         meta = sp.io.loadmat(self.meta_path, appendmat=True)
         meta = meta['imdb'][0][0]
 
@@ -33,45 +35,69 @@ class Preprocessor:
         # probably not needed
         self.names = meta[4][0][0]
 
+        print "Working on embeddings..."
+
         self.embeddings = []
         with open(self.embeddings_path) as embeddings_csv:
             embeddings_csv_reader = csv.reader(embeddings_csv)
             for embedding in embeddings_csv_reader:
                 self.embeddings.append(embedding)
 
+        print "Working on file_labels..."
+
         self.file_labels = []
         with open(self.file_labels_path) as file_labels_csv:
             file_labels_csv_reader = csv.reader(file_labels_csv)
             for file_label in file_labels_csv_reader:
-                self.file_labels.append(file_label)
+                self.file_labels.append(file_label[1])
+
+        print "Saving vectors..."
 
         # save the vectors as a dict (check if ordered) so they don't need to be processed again
-        vectors = {'image_paths': self.image_paths, 'imdb_ids': self.imdb_ids, 'face_scores': self.face_scores,
+        """vectors = {'image_paths': self.image_paths, 'imdb_ids': self.imdb_ids, 'face_scores': self.face_scores,
                    'second_face_scores': self.second_face_scores, 'all_celeb_names': self.all_celeb_names,
                    'names': self.names, 'embeddings': self.embeddings, 'file_labels': self.file_labels}
         with open('vectors.pickle', 'w+') as vectors_file:
-            pickle.dump(vectors, vectors_file, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(vectors, vectors_file, protocol=pickle.HIGHEST_PROTOCOL)"""
 
 
     # method to create labels vector from meta file, matched it up to the embeddings vector
     def match_vectors(self):
         # zip the embeddings and file_labels and arrange by file_label
-        csv_vectors = zip(self.file_labels, self.embeddings)
-        csv_vectors = sorted(csv_vectors, key=lambda row: row[0])
-        sorted_file_labels, sorted_embeddings = zip(*csv_vectors)
+       # csv_vectors = zip(self.file_labels, self.embeddings)
+       # csv_vectors = sorted(csv_vectors, key=lambda row: row[0])
+       # sorted_file_labels, sorted_embeddings = zip(*csv_vectors)
 
         # create a new embedding vector, which will contain the embeddings in the same order as the meta info
         self.ordered_embeddings = []
 
+        print "Working on matching..."
+
+        cnt = 0;
+
         # go through the zipped meta vectors and look for the embedding in the zipped csv vectors
-        for path in self.image_paths:
+        for path_element in self.image_paths:
             # modify the path so that it matches that of the csv
-            mod_path = "./aligned-images/" + path[:path.index("jpg")] + "png"
-            embedding_index = np.searchsorted(sorted_file_labels, mod_path)
-            embedding = sorted_embeddings[embedding_index]
+
+            print str(cnt) + "/" + str(len(self.image_paths))
+            cnt += 1
+
+            path = str(path_element)
+            mod_path = "./aligned-images/" + path[path.find("/") - 2:path.find("jpg")] + "png"
+            try:
+                embedding_index = self.file_labels.index(mod_path)
+                embedding = str(self.embeddings[embedding_index])
+            except ValueError:
+                print str(embedding_index)
+                embedding = ""
+
+        #    embedding_index = np.searchsorted(sorted_file_labels, mod_path)
+        #    embedding = sorted_embeddings[embedding_index]
 
             # write the embedding new embedding vector
             self.ordered_embeddings.append(embedding)
+
+        print "Saving vectors..."
 
         # embedding vector and imdb_id vectors saved as .pickle
         data_set = {'embedding': self.ordered_embeddings, 'imdb_id': self.imdb_ids}
