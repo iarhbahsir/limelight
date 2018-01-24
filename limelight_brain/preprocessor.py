@@ -73,7 +73,7 @@ class Preprocessor:
 
         print "Working on matching..."
 
-        cnt = 0;
+        cnt = 0
 
         # go through the zipped meta vectors and look for the embedding in the zipped csv vectors
         for path_element in self.image_paths:
@@ -102,22 +102,91 @@ class Preprocessor:
         # embedding vector and imdb_id vectors saved as .pickle
         data_set = {'embedding': self.ordered_embeddings, 'imdb_id': self.imdb_ids}
         with open('data_set.pickle', 'w+') as data_set_file:
-            pickle.dump(data_set, data_set_file, protocol=pickle.HIGHEST_PROTOCOL)
+                pickle.dump(data_set, data_set_file, protocol=pickle.HIGHEST_PROTOCOL)
 
 
     # method to partition embeddings and imdb_id vector in training, validation, and test sets
         # get number of images present for a given actor
-
-        # if less than 3 images, keep in training
-        # 3 images: place one in test
+        # if less than 2 images, keep in training
+        # 2+ images: place one in test
         # more images: place at least one in test and at least one in validation
         # TODO see how many actors have few images and test some manually to check if accuracy is ok
+    def partition_data(self, id_counts, converted_sets):
+        training_sets = []
+        test_sets = []
+        temp_id_counts = id_counts.copy()
+        for setNum in xrange(len(converted_sets['imdb_id'])):
+            if (temp_id_counts[converted_sets['imdb_id'][setNum]] == id_counts[converted_sets['imdb_id'][setNum]]):
+                if (id_counts[converted_sets['imdb_id'][setNum]] == 1):
+                    training_sets.append((converted_sets['embedding'][setNum], converted_sets['imdb_id'][setNum]))
+                else:
+                    test_sets.append((converted_sets['embedding'][setNum], converted_sets['imdb_id'][setNum]))
+            else:
+                training_sets.append((converted_sets['embedding'][setNum], converted_sets['imdb_id'][setNum]))
+            temp_id_counts[converted_sets['imdb_id'][setNum]] = temp_id_counts[converted_sets['imdb_id'][setNum]] - 1
+        return {'training':training_sets, 'test': test_sets}
 
-    # method to return tuple of (training, validation, and test data sets)
 
 
-    # method to return tuple of (embeddings vector, imdb_id vector)
+def divideIntoGroups(data_set_path, group_size, specifier=""):
+    print "started"
+    with open(data_set_path, 'r') as data_file:
+        data_set = pickle.load(data_file)
+        curr_group = {'in': [], 'out': [], 'out_categorical':[]}
+        group_num = 0
+        curr_num = 1
+        embeddings = data_set[0]
+        ids = data_set[1]
+        group_id_tables = []
+        curr_group_id_table = []
 
-    # method to take in the .pickle files and set up vectors accordingly
+        for num in xrange(len(embeddings)):
+            if num == 0:
+                curr_group_id_table.append(ids[num])
+            if num != 0 and (ids[num] != ids[num - 1]):
+                curr_num += 1
+                curr_group_id_table.append(ids[num])
 
+            curr_group['in'].append(embeddings[num])
+            curr_group['out'].append(ids[num])
+            curr_group['out_categorical'].append(curr_num-1)
+
+            if curr_num / group_size > group_num:
+                print "finished group number " + str(group_num)
+                group_filename =  "group-" + str(group_num) + "-" + str(specifier) + "-data.pickle"
+                with open(group_filename, 'w+') as group_file:
+                    pickle.dump(curr_group, group_file, protocol=pickle.HIGHEST_PROTOCOL)
+                group_num += 1
+                group_id_tables.append(curr_group_id_table)
+                curr_group_id_table = []
+                curr_group = {'in': [], 'out': [], 'out_categorical': []}
+        with open("group_id_tables", 'w+') as group_id_tables_file:
+            pickle.dump(group_id_tables, group_id_tables_file, protocol=pickle.HIGHEST_PROTOCOL)
+
+# changes the string embeddings read in from the csv to a matrix of floats (static)
+def embedding_to_numbers(toConvert):
+    converted = []
+    for string in toConvert:
+        converted_emb = []
+        segmented = str(string).split(",")
+        segmented[0] = (segmented[0].strip())[1:]
+        segmented[len(segmented) - 1] = (segmented[len(segmented) - 1].strip())[:-1]
+        for segment in segmented:
+            converted_emb.append(float((segment.strip())[1:-1]))
+        converted.append(converted_emb)
+    return converted
+
+# changes ids to correct label for training
+"""def make_id_tables():
+    group_id_tables = []
+    curr_table = []
+    MAX_GROUPS = 18
+    for group in xrange(MAX_GROUPS):
+        with open("group-" + str(group) + "training-data.pickle") as group_file:
+            group_data = np.load(group_file)
+            for id in group_data['out']
+"""
 # method to take in image location, and align then convert into embeddings to return (static)
+
+
+
