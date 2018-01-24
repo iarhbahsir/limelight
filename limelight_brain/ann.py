@@ -27,7 +27,7 @@ class Brain:
             self.brain = Sequential()
             self.brain.add(Dense(300, input_dim=128, activation='tanh'))
             #self.brain.add(Dense(400, activation='tanh'))
-            #self.brain.add(Dense(450, activation='tanh'))
+            self.brain.add(Dense(450, activation='tanh'))
             #self.brain.add(Dense(20285, activation='softmax'))
             self.brain.add(Dense(500, activation='softmax'))
             self.brain.compile(optimizer='adadelta', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
