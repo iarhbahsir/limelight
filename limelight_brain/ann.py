@@ -23,7 +23,7 @@ class Brain:
             # TODO: apply dropout when higher accuracy is achieved
             # TODO: test log likelihood vs cross entropy
             # TODO: expand to deeper network (probably needed)
-            # TODO: apply convolution and pooling
+            # TODO: apply convolution and pooling?
             self.brain = Sequential()
             self.brain.add(Dense(300, input_dim=128, activation='tanh'))
             #self.brain.add(Dense(400, activation='tanh'))
@@ -34,7 +34,7 @@ class Brain:
 
     # function to train the nn and save best models at end of epochs
     def train(self, group_num):
-        filepath = str(group_num) + "-weights-improvement-{epoch:05d}-{acc:.4f}-5_layer.hdf5"
+        filepath = "limelight_data/models/group-" + str(group_num) + "-new-weights-{epoch:05d}-{acc:.4f}.hdf5"
         checkpoint = ModelCheckpoint(filepath, monitor='acc', verbose=1, save_best_only=True, mode='max')
         callbacks_list = [checkpoint]
         print "started"
@@ -48,7 +48,7 @@ class Brain:
 
 
 def train_group(group_num, prev_model=None):
-    group_file_name = "group-" + str(group_num) + "-training-data.pickle"
+    group_file_name = "limelight_data/data/training/group-" + str(group_num) + "-training-data.pickle"
     group_file = open(group_file_name, 'r')
     group_data = p.load(group_file)
     group_data = [np.asarray(group_data['in']), np.asarray(group_data['out_categorical'])]

@@ -127,7 +127,7 @@ class Preprocessor:
         return {'training':training_sets, 'test': test_sets}
 
 
-
+# divides sets into groups and appends group label, creates id table
 def divideIntoGroups(data_set_path, group_size, specifier=""):
     print "started"
     with open(data_set_path, 'r') as data_file:
@@ -176,16 +176,6 @@ def embedding_to_numbers(toConvert):
         converted.append(converted_emb)
     return converted
 
-# changes ids to correct label for training
-"""def make_id_tables():
-    group_id_tables = []
-    curr_table = []
-    MAX_GROUPS = 18
-    for group in xrange(MAX_GROUPS):
-        with open("group-" + str(group) + "training-data.pickle") as group_file:
-            group_data = np.load(group_file)
-            for id in group_data['out']
-"""
 # method to take in image location, and align then convert into embeddings to return (static)
 
 
