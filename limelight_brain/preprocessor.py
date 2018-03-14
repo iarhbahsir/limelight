@@ -1,7 +1,7 @@
 
-import csv
-import scipy as sp
-import scipy.io
+# import csv
+# import scipy as sp
+# import scipy.io
 import numpy as np
 import pickle
 
@@ -14,7 +14,7 @@ class Preprocessor:
         self.file_labels_path = file_labels_path
 
     # method to read embeddings and label csv files and create vectors
-    def create_base_vectors(self):
+    """def create_base_vectors(self):
         print "Working on imdb info..."
 
         meta = sp.io.loadmat(self.meta_path, appendmat=True)
@@ -53,8 +53,7 @@ class Preprocessor:
 
         print "Saving vectors..."
 
-        # save the vectors as a dict (check if ordered) so they don't need to be processed again
-        """vectors = {'image_paths': self.image_paths, 'imdb_ids': self.imdb_ids, 'face_scores': self.face_scores,
+        # save the vectors as a dict (check if ordered) so they don't need to be processed againvectors = {'image_paths': self.image_paths, 'imdb_ids': self.imdb_ids, 'face_scores': self.face_scores,
                    'second_face_scores': self.second_face_scores, 'all_celeb_names': self.all_celeb_names,
                    'names': self.names, 'embeddings': self.embeddings, 'file_labels': self.file_labels}
         with open('vectors.pickle', 'w+') as vectors_file:
@@ -132,7 +131,7 @@ def divideIntoGroups(data_set_path, group_size, specifier=""):
     print "started"
     with open(data_set_path, 'r') as data_file:
         data_set = pickle.load(data_file)
-        curr_group = {'in': [], 'out': [], 'out_categorical':[]}
+        curr_group = {'in': [], 'out': [], 'out_categorical': []}
         group_num = 0
         curr_num = 1
         embeddings = data_set[0]
@@ -153,15 +152,93 @@ def divideIntoGroups(data_set_path, group_size, specifier=""):
 
             if curr_num / group_size > group_num:
                 print "finished group number " + str(group_num)
-                group_filename =  "group-" + str(group_num) + "-" + str(specifier) + "-data.pickle"
+                group_filename = "group-" + str(group_num) + "-" + str(specifier) + "-data.pickle"
                 with open(group_filename, 'w+') as group_file:
                     pickle.dump(curr_group, group_file, protocol=pickle.HIGHEST_PROTOCOL)
                 group_num += 1
                 group_id_tables.append(curr_group_id_table)
                 curr_group_id_table = []
                 curr_group = {'in': [], 'out': [], 'out_categorical': []}
-        with open("group_id_tables", 'w+') as group_id_tables_file:
+        with open("group_id_tables_small", 'w+') as group_id_tables_file:
             pickle.dump(group_id_tables, group_id_tables_file, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def divide_into_groups_small(data_set_path, group_size, specifier=""):
+    print "started"
+    with open(data_set_path, 'r') as data_file:
+        data_set = pickle.load(data_file)
+        curr_group = {'in': [], 'out': [], 'out_categorical': []}
+        group_num = 0
+        curr_num = 1
+        embeddings = data_set[0]
+        ids = data_set[1]
+        group_id_tables = []
+        curr_group_id_table = []
+        label = 0
+
+        for num in xrange(len(embeddings)):
+            if num == 0:
+                curr_group_id_table.append(ids[num])
+            if num != 0 and (ids[num] != ids[num - 1]):
+                curr_num += 1
+                label += 1
+                curr_group_id_table.append(ids[num])
+
+            if curr_num / group_size > group_num:
+                print "finished group number " + str(group_num)
+                group_filename = "limelight_data/data/training/group-" + str(group_num) + "-" + str(specifier) + "-data-small.pickle"
+                with open(group_filename, 'w+') as group_file:
+                    pickle.dump(curr_group, group_file, protocol=pickle.HIGHEST_PROTOCOL)
+                group_num += 1
+                group_id_tables.append(curr_group_id_table)
+                curr_group_id_table = []
+                curr_group = {'in': [], 'out': [], 'out_categorical': []}
+                label = 0
+
+            curr_group['in'].append(embeddings[num])
+            curr_group['out'].append(ids[num])
+            curr_group['out_categorical'].append(label)
+
+        with open("limelight_data/data/miscellaneous/group_id_tables_small", 'w+') as group_id_tables_file:
+            pickle.dump(group_id_tables, group_id_tables_file, protocol=pickle.HIGHEST_PROTOCOL)
+
+def invert_id_tables(id_tables_path):
+    id_tables = pickle.load(open(id_tables_path))
+    inverted_id_tables = np.empty([20285, 2])
+    for group in xrange(0, len(id_tables)):
+        for one_hot in xrange(0, len(id_tables[group])):
+            inverted_id_tables[id_tables[group][one_hot]] = [group, one_hot]
+
+    inverted_file_name = "limelight_data/data/miscellaneous/inverted_group_id_tables_small.pickle"
+    with open(inverted_file_name, 'w+') as inverted_file:
+        pickle.dump(inverted_id_tables, inverted_file, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def divide_into_test_groups(test_data_set_path, group_max, specifier="test"):
+    print "started"
+    curr_group = {'in': [], 'out': [], 'out_categorical': []}
+    GROUP_MAX = group_max
+    inverted_file_name = "limelight_data/data/miscellaneous/inverted_group_id_tables_small.pickle"
+    inverted_file = open(inverted_file_name)
+    inverted_id_tables = pickle.load(inverted_file)
+
+
+    with open(test_data_set_path, 'r') as test_data_file:
+        test_data_set = pickle.load(test_data_file)
+        for group_num in xrange(GROUP_MAX):
+            for pair in test_data_set:
+                embedding = pair[0]
+                id = pair[1]
+                if inverted_id_tables[id][0] == group_num:
+                    curr_group['in'].append(embedding)
+                    curr_group['out'].append(id)
+                    curr_group['out_categorical'].append(inverted_id_tables[id][1])
+
+            print "finished group number " + str(group_num)
+            group_filename = "limelight_data/data/test/group-" + str(group_num) + "-" + str(specifier) + "-data.pickle"
+            with open(group_filename, 'w+') as group_file:
+                pickle.dump(curr_group, group_file, protocol=pickle.HIGHEST_PROTOCOL)
+            curr_group = {'in': [], 'out': [], 'out_categorical': []}
 
 # changes the string embeddings read in from the csv to a matrix of floats (static)
 def embedding_to_numbers(toConvert):
@@ -177,6 +254,19 @@ def embedding_to_numbers(toConvert):
     return converted
 
 # method to take in image location, and align then convert into embeddings to return (static)
+
+# scale labels
+def scale_labels(group_num):
+    group_file_name = "limelight_data/data/training/group-" + str(group_num) + "-training-data.pickle"
+    group_file = open(group_file_name, 'r')
+    group_data = pickle.load(group_file)
+    group_data = [np.asarray(group_data['in']), np.asarray(group_data['out_categorical'])]
+    scaled_data = {'in': group_data[0], 'out_categorical': [x / 10000.0 for x in group_data[1]]}
+    print scaled_data['in'][:50]
+    print scaled_data['out_categorical'][:50]
+    scaled_file_name = "limelight_data/data/training/group-" + str(group_num) + "-training-data-scaled.pickle"
+    with open(scaled_file_name, 'w+') as scaled_file:
+        pickle.dump(scaled_data, scaled_file, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 
